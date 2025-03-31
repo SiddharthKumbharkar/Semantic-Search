@@ -1,0 +1,7 @@
+2025-03-31 11:39:42,375 - INFO - Initializing embedding model...
+2025-03-31 11:39:42,375 - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+2025-03-31 11:39:45,061 - INFO - Model initialized in 2.69s
+2025-03-31 11:39:45,061 - INFO - Processing PDF files...
+2025-03-31 11:39:45,124 - INFO - Total chunks processed: 0
+2025-03-31 11:39:45,124 - ERROR - No chunks created from PDFs
+2025-03-31 11:44:09,678 - ERROR - Fatal error: name 'verify_pdfs' is not defined

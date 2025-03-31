@@ -1,0 +1,8 @@
+storage:
+  snapshot_path: "./qdrant_db/snapshots"
+  payload_indexing_threshold: 100
+service:
+  http_port: 6333
+  grpc_port: 6334
+cluster:
+  enabled: false

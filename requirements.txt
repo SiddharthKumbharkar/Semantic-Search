@@ -1,0 +1,7 @@
+PyPDF2==3.0.1
+sentence-transformers==2.6.1
+faiss-cpu==1.7.4
+tqdm==4.66.1
+onnxruntime==1.16.3
+transformers==4.36.2
+torch==2.1.0
