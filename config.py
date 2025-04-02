@@ -1,28 +1,36 @@
 import os
+from pathlib import Path
 
+# config.py (correction)
 class Config:
-    # Directory Configuration
-    PDF_DIRECTORY = os.path.abspath("pdfs")
-    VECTOR_DB_DIR = os.path.abspath("vector_db")
-    MODEL_CACHE = os.path.abspath("model_cache")
+    # Correct base directory (parent of config.py's directory)
+    BASE_DIR = Path(__file__).parent  # Changed from .parent.parent
+    PDF_DIRECTORY = BASE_DIR / "pdfs"
+    # ... rest of config remains the same ...
     
-    # PDF Processing
-    FILE_HASHES_JSON = "processed_files.json"
-    MAX_PAGES_TO_PROCESS = None  # Process all pages
-    MIN_SENTENCE_LENGTH = 3      # Minimum words per sentence
-    SENTENCES_PER_CHUNK = 3      # Sentences per chunk
-    MIN_CHARS_PER_PAGE = 100     # Skip pages with less text
+    # Qdrant configuration
+    QDRANT_LOCATION = BASE_DIR / "qdrant_db"
+    QDRANT_COLLECTION = "document_chunks"
     
-    # Qdrant Configuration
-    QDRANT_LOCATION = os.path.abspath("qdrant_db")
-    QDRANT_COLLECTION = "pdf_chunks"
-    HYBRID_SEARCH_RATIO = 0.7    # 70% vector, 30% keyword
-    SIMILARITY_TOP_K = 5         # Number of results to return
-    
-    # Keyword Database
-    KEYWORD_DB = os.path.abspath("keywords.db")
-    KEYWORD_INDEX = "pdf_keywords"
-    
-    # Embedding Model
+    # Embedding model
     EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-    EMBEDDING_DIM = 384          # Dimension for all-MiniLM-L6-v2
+    EMBEDDING_DIM = 384
+    
+    # Processing parameters
+    MIN_CHARS_PER_PAGE = 100
+    MIN_SENTENCE_LENGTH = 3
+    SENTENCES_PER_CHUNK = 3
+    SIMILARITY_TOP_K = 5
+    HYBRID_SEARCH_RATIO = 0.7
+    
+    # Other directories
+    EMBEDDING_STORAGE = BASE_DIR / "embedding_storage"
+    MODEL_CACHE = BASE_DIR / "model_cache"
+    VECTOR_DB_DIR = BASE_DIR / "vector_db"
+    KEYWORD_DB = BASE_DIR / "keywords.db"
+    KEYWORD_INDEX = "document_keywords"
+    FILE_HASHES_JSON = "processed_files.json"
+    
+    # Create required directories
+    for dir_path in [PDF_DIRECTORY, EMBEDDING_STORAGE, MODEL_CACHE, QDRANT_LOCATION, VECTOR_DB_DIR]:
+        dir_path.mkdir(parents=True, exist_ok=True)

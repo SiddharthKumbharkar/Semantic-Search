@@ -1,132 +1,119 @@
+import sys
+import time
+import logging
+from pathlib import Path
+from PyPDF2 import PdfReader
 from vector_store import VectorStore
 from pdf_processor import PDFProcessor
 from config import Config
-import logging
-import os
-import sys
-from PyPDF2 import PdfReader
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("semantic_search.log"),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
+def setup_logging():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.FileHandler("semantic_search.log", encoding="utf-8"),
+            logging.StreamHandler()
+        ]
+    )
+    return logging.getLogger(__name__)
 
-def verify_pdf_content(pdf_path: str) -> bool:
-    """Verify a PDF contains extractable text"""
+def verify_pdf(pdf_path: Path) -> bool:
+    """Check if PDF contains extractable text"""
     try:
-        print(f"\n🔬 Testing PDF: {os.path.basename(pdf_path)}")
-        with open(pdf_path, 'rb') as f:
-            # Quick check for text layers
-            if b'/Font' not in f.read(1000):
-                print("⚠️ Warning: No fonts detected - may be scanned PDF")
-                return False
+        with pdf_path.open('rb') as f:
+            if b"/Font" not in f.read(1000):
+                print(f"Warning: {pdf_path.name} may be scanned PDF")
         
         reader = PdfReader(pdf_path)
-        for i, page in enumerate(reader.pages[:3]):  # Check first 3 pages
-            text = page.extract_text()
-            if text and len(text.strip()) > 100:
-                print(f"✅ Page {i+1} contains text ({len(text)} chars)")
-                return True
-        print("❌ No sufficient text found in first 3 pages")
-        return False
+        return any(page.extract_text() for page in reader.pages[:3])
     except Exception as e:
-        print(f"🔥 Verification failed: {str(e)}")
+        print(f"Error verifying {pdf_path.name}: {str(e)}")
         return False
 
-def initialize_system():
-    """Initialize all components with validation"""
-    try:
-        # Create required directories
-        os.makedirs(Config.VECTOR_DB_DIR, exist_ok=True)
-        os.makedirs(Config.MODEL_CACHE, exist_ok=True)
+def check_pdfs() -> bool:
+    """Verify PDF directory contains valid files"""
+    print("\nChecking PDF directory...")
+    valid = False
+    
+    if not Config.PDF_DIRECTORY.exists():
+        print(f"✖ Directory not found: {Config.PDF_DIRECTORY}")
+        return False
         
-        return VectorStore()
-    except Exception as e:
-        logger.error(f"Initialization failed: {str(e)}")
-        raise
-
-def process_pdfs(vector_store):
-    """Process PDFs with progress tracking"""
-    try:
-        # Force reprocess all files
-        logger.info("Processing PDF files...")
-        chunks = PDFProcessor.process_pdfs_in_directory()
-        if not chunks:
-            logger.error("No chunks created from PDFs")
-            return False
-            
-        logger.info(f"Created {len(chunks)} chunks from PDFs")
-        vector_store.create_index(chunks)
-        return True
-    except Exception as e:
-        logger.error(f"PDF processing failed: {str(e)}")
+    pdf_files = list(Config.PDF_DIRECTORY.glob("*.pdf")) + list(Config.PDF_DIRECTORY.glob("*.PDF"))
+    if not pdf_files:
+        print(f"✖ No PDFs found in {Config.PDF_DIRECTORY}")
         return False
+        
+    for pdf_file in pdf_files:
+        if verify_pdf(pdf_file):
+            print(f"✔ Valid PDF found: {pdf_file.name}")
+            valid = True
+        else:
+            print(f"✖ Invalid PDF (may be scanned): {pdf_file.name}")
+    
+    return valid
 
-def search_loop(vector_store):
+def search_loop(vector_store: VectorStore):
     """Interactive search interface"""
-    logger.info("Entering search loop. Type 'exit' to quit.")
+    print("\nDocument Search System")
+    print("Type 'exit' to quit\n")
     
     while True:
         try:
-            query = input("\nEnter your search query (or 'exit' to quit): ").strip()
-            
+            query = input("Search query: ").strip()
             if query.lower() == 'exit':
                 break
-                
             if not query:
-                print("Please enter a search query")
+                print("Please enter a query")
                 continue
                 
             start_time = time.time()
             results = vector_store.hybrid_search(query)
-            search_time = time.time() - start_time
+            duration = time.time() - start_time
             
-            print(f"\nSearch completed in {search_time:.2f} seconds")
-            print(f"Found {len(results)} results:")
-            
+            print(f"\nFound {len(results)} results in {duration:.2f}s:")
             for i, res in enumerate(results, 1):
-                print(f"\n{i}. [PDF: {res['payload']['pdf_name']} | Page: {res['payload']['page']}]")
-                print(res["payload"]["text"][:500] + ("..." if len(res["payload"]["text"]) > 500 else ""))
+                payload = res['payload']
+                print(f"\n{i}. [{payload['pdf_name']} - Page {payload['page']}]")
+                print(payload['text'][:300].replace('\n', ' ') + ("..." if len(payload['text']) > 300 else ""))
                 
         except KeyboardInterrupt:
-            print("\nOperation cancelled by user")
+            print("\nSearch cancelled")
             break
         except Exception as e:
-            print(f"\nError during search: {str(e)}")
-            continue
+            print(f"\nError: {str(e)}")
 
 def main():
+    logger = setup_logging()
+    vector_store = None
+    
     try:
-        # Verify system requirements
-        if not verify_pdfs():
-            sys.exit(1)
+        if not check_pdfs():
+            sys.exit("No valid PDFs found. Exiting.")
             
-        # Initialize
-        vector_store = initialize_system()
+        logger.info("Initializing system...")
+        vector_store = VectorStore()
+        processor = PDFProcessor()
         
-        # Process PDFs
-        if not process_pdfs(vector_store):
-            sys.exit(1)
-            
-        # Start search interface
+        logger.info("Processing documents...")
+        chunks = processor.process_pdfs()
+        if chunks:
+            logger.info(f"Indexing {len(chunks)} chunks...")
+            vector_store.create_index(chunks)
+        else:
+            logger.info("No new documents to process")
+        
         search_loop(vector_store)
         
     except Exception as e:
         logger.error(f"Fatal error: {str(e)}")
         sys.exit(1)
     finally:
-        try:
+        if vector_store:
             vector_store.close()
-        except:
-            pass
+        logger.info("System shutdown")
 
 if __name__ == "__main__":
-    import time
-    time.sleep(1)  # Ensure logs are initialized
+    time.sleep(1)  # Ensure logging is ready
     main()
