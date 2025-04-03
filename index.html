@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send Input to Terminal</title>
+</head>
+<body>
+    <h2>Send Input to Terminal</h2>
+    <input type="text" id="query" placeholder="Enter query">
+    <button onclick="sendQuery()">Send</button>
+
+    <script>
+        const ws = new WebSocket("ws://localhost:8765");
+
+        ws.onopen = () => console.log("Connected to WebSocket Server");
+
+        function sendQuery() {
+            let query = document.getElementById("query").value;
+            if (query) {
+                ws.send(query);
+                document.getElementById("query").value = ""; // Clear input
+            }
+        }
+    </script>
+</body>
+</html>
