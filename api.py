@@ -93,36 +93,40 @@ def generate():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/upload', methods=['POST'])
-def upload_pdf():
+def upload_pdfs():
     """
-    Upload and process a PDF file, chunk it, and index it in the vector store.
+    Upload and process multiple PDF files, chunk them, and index them in the vector store.
     """
     try:
-        if 'file' not in request.files:
-            return jsonify({"error": "No file part in request"}), 400
+        files = request.files.getlist('files')
+        if not files or len(files) == 0:
+            return jsonify({"error": "No files provided"}), 400
 
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({"error": "No selected file"}), 400
+        results = []
 
-        filename = secure_filename(file.filename)
-        save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(save_path)
+        for file in files:
+            if file.filename == '':
+                continue  # Skip empty filenames
 
-        # Temporarily process only this file
-        logger.info(f"Processing uploaded file: {filename}")
-        pages_text = processor.extract_text_from_pdf(save_path)
-        chunks = processor.chunk_text(pages_text)
+            filename = secure_filename(file.filename)
+            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(save_path)
 
-        if chunks:
-            logger.info(f"Indexing {len(chunks)} chunks for {filename}")
-            vector_store.create_index(chunks)
-            return jsonify({"message": f"File '{filename}' processed and indexed successfully.", "chunks_indexed": len(chunks)}), 200
-        else:
-            return jsonify({"message": f"No text extracted from '{filename}'"}), 204
+            logger.info(f"Processing uploaded file: {filename}")
+            pages_text = processor.extract_text_from_pdf(save_path)
+            chunks = processor.chunk_text(pages_text)
+
+            if chunks:
+                logger.info(f"Indexing {len(chunks)} chunks for {filename}")
+                vector_store.create_index(chunks)
+                results.append({"filename": filename, "chunks_indexed": len(chunks)})
+            else:
+                results.append({"filename": filename, "message": "No text extracted"})
+
+        return jsonify({"results": results}), 200
 
     except Exception as e:
-        logger.exception("Error while uploading or processing PDF")
+        logger.exception("Error while uploading or processing PDFs")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
