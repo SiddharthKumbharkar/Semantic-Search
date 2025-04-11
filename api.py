@@ -50,6 +50,28 @@ from pdf_processor import PDFProcessor
 import os
 from werkzeug.utils import secure_filename
 import logging
+import boto3
+from botocore.exceptions import NoCredentialsError
+import boto3
+from botocore.exceptions import NoCredentialsError
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+AWS_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY')
+AWS_SECRET_KEY = os.getenv('AWS_SECRET_KEY')
+S3_BUCKET = os.getenv('S3_BUCKET')
+S3_REGION = os.getenv('S3_REGION')
+
+S3_BASE_URL = f'https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/'
+
+s3 = boto3.client('s3',
+    region_name=S3_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY,
+    aws_secret_access_key=AWS_SECRET_KEY
+)
+
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -81,16 +103,36 @@ def generate():
             {
                 "pdf_name": res['payload']['pdf_name'],
                 "page": res['payload']['page'],
-                "text": res['payload']['text'][:300] + ("..." if len(res['payload']['text']) > 300 else "")
+                "text": res['payload']['text'][:300] + ("..." if len(res['payload']['text']) > 300 else ""),
+                "s3_url": f"{S3_BASE_URL}{res['payload']['pdf_name']}"
             }
             for res in results
         ]
+
+
         print(f"Formatted results: {formatted_results}")
         return jsonify({"results": formatted_results}), 200
 
     except Exception as e:
         logger.exception("Error during search")
         return jsonify({"error": str(e)}), 500
+
+def upload_to_s3(file_path, filename):
+    try:
+        s3.upload_file(
+            file_path,
+            S3_BUCKET,
+            filename,
+            ExtraArgs={'ContentType': 'application/pdf'}
+        )
+
+        return f"{S3_BASE_URL}{filename}"
+    except NoCredentialsError:
+        raise Exception("S3 credentials not found")
+    except Exception as e:
+        raise Exception(f"S3 upload failed: {str(e)}")
+
+
 
 @app.route('/upload', methods=['POST'])
 def upload_pdfs():
@@ -119,7 +161,16 @@ def upload_pdfs():
             if chunks:
                 logger.info(f"Indexing {len(chunks)} chunks for {filename}")
                 vector_store.create_index(chunks)
-                results.append({"filename": filename, "chunks_indexed": len(chunks)})
+                # results.append({"filename": filename, "chunks_indexed": len(chunks)})
+                s3_url = upload_to_s3(save_path, filename)
+
+                results.append({
+                    "filename": filename,
+                    "chunks_indexed": len(chunks),
+                    "s3_url": s3_url
+                })
+
+
             else:
                 results.append({"filename": filename, "message": "No text extracted"})
 

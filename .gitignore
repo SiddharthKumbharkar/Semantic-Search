@@ -1,3 +1,5 @@
 myenv/
 embedding_storage/
 uploaded_pdfs/
+.env
+node_modules/

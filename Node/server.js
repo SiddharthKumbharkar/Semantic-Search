@@ -11,48 +11,6 @@ app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json());
 
-// async function getBucketRegion(accessKey, secretKey, bucketName) {
-//   const s3 = new S3Client({
-//     region: 'us-east-1', // dummy region, will be auto-resolved
-//     credentials: {
-//       accessKeyId: accessKey,
-//       secretAccessKey: secretKey,
-//     }
-//   });
-
-//   try {
-//     const response = await s3.send(new HeadBucketCommand({ Bucket: bucketName }));
-//     const region = response.$metadata.httpHeaders['x-amz-bucket-region'];
-//     return region;
-//   } catch (error) {
-//     console.error('Error detecting bucket region:', error);
-//     throw error;
-//   }
-// }
-// async function getBucketRegion(accessKey, secretKey, bucketName) {
-//     const s3 = new S3Client({
-//       region: 'us-east-1', // dummy/default
-//       credentials: {
-//         accessKeyId: accessKey,
-//         secretAccessKey: secretKey,
-//       }
-//     });
-  
-//     try {
-//       // We purposely send a bad request to trigger region redirect
-//       await s3.send(new HeadBucketCommand({ Bucket: bucketName }));
-//       return 'ap-south-1'; // fallback
-//     } catch (error) {
-//       const region = error.$metadata?.httpHeaders?.['x-amz-bucket-region'];
-//       if (region) {
-//         return region;
-//       } else {
-//         console.error('Error detecting bucket region:', error);
-//         throw error;
-//       }
-//     }
-//   }
-  
 app.post('/fetch-documents', async (req, res) => {
   const { accessKey, secretKey,bucketName } = req.body;
 //   const bucketName = 'privatebucketnodejs';
