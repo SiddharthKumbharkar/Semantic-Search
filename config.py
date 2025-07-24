@@ -18,10 +18,10 @@ class Config:
     
     # Processing parameters
     MIN_CHARS_PER_PAGE = 100
-    MIN_SENTENCE_LENGTH = 3
-    SENTENCES_PER_CHUNK = 3
-    SIMILARITY_TOP_K = 5
-    HYBRID_SEARCH_RATIO = 0.7
+    MIN_SENTENCE_LENGTH = 5
+    SENTENCES_PER_CHUNK = 6
+    SIMILARITY_TOP_K = 6
+    HYBRID_SEARCH_RATIO = 0.6
     
     # Other directories
     EMBEDDING_STORAGE = BASE_DIR / "embedding_storage"
