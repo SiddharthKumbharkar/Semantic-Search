@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 class KeywordDatabase:
     def __init__(self):
         self.table_name = Config.KEYWORD_TABLE_NAME
-        self.conn = sqlite3.connect(Config.KEYWORD_DB)
+        # The fix is here: allow the connection to be used across threads
+        self.conn = sqlite3.connect(Config.KEYWORD_DB, check_same_thread=False)
         self._init_db()
     
     def _init_db(self):

@@ -4,6 +4,7 @@ class Config:
     # --- Project Paths ---
     BASE_DIR = Path(__file__).parent
     PDF_DIRECTORY = BASE_DIR / "data"
+    STATIC_DIR = BASE_DIR / "static" # For serving files from the root
     VECTOR_DB_DIR = BASE_DIR / "vector_db"
     MODEL_CACHE = BASE_DIR / "model_cache"
     EMBEDDING_STORAGE = VECTOR_DB_DIR / "embeddings"
@@ -11,7 +12,7 @@ class Config:
     # --- File Definitions ---
     FILE_HASHES_JSON = "processed_files.json"
     KEYWORD_DB = str(VECTOR_DB_DIR / "keyword_search.db")
-    KEYWORD_TABLE_NAME = "keyword_index" # Added this line
+    KEYWORD_TABLE_NAME = "keyword_index"
 
     # --- Qdrant Settings ---
     QDRANT_LOCATION = str(VECTOR_DB_DIR / "qdrant")
@@ -32,7 +33,7 @@ class Config:
 
     # --- Chatbot (RAG) Settings ---
     OLLAMA_MODEL = "llama3.2:latest"
-    CONTEXT_CHUNKS_FOR_RAG = 5 # Number of context chunks to feed the LLM
+    CONTEXT_CHUNKS_FOR_RAG = 5
     RAG_PROMPT_TEMPLATE = """
     **Task:** You are an intelligent assistant. Use the following context from the user's documents to answer their question.
 
