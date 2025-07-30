@@ -11,16 +11,18 @@ logger = logging.getLogger(__name__)
 
 class KeywordDatabase:
     def __init__(self):
+        self.table_name = Config.KEYWORD_TABLE_NAME
         self.conn = sqlite3.connect(Config.KEYWORD_DB)
         self._init_db()
     
     def _init_db(self):
         with closing(self.conn.cursor()) as cur:
-            cur.execute(f"DROP TABLE IF EXISTS {Config.KEYWORD_INDEX}")
-            cur.execute(f"DROP TABLE IF EXISTS fts_{Config.KEYWORD_INDEX}")
-            
+            logger.info(f"Recreating keyword database schema for table: {self.table_name}")
+            cur.execute(f"DROP TABLE IF EXISTS {self.table_name}")
+            cur.execute(f"DROP TABLE IF EXISTS fts_{self.table_name}")
+
             cur.execute(f"""
-                CREATE TABLE {Config.KEYWORD_INDEX} (
+                CREATE TABLE {self.table_name} (
                     rowid INTEGER PRIMARY KEY,
                     id TEXT UNIQUE NOT NULL,
                     text TEXT NOT NULL,
@@ -31,18 +33,18 @@ class KeywordDatabase:
             """)
             
             cur.execute(f"""
-                CREATE VIRTUAL TABLE fts_{Config.KEYWORD_INDEX} USING fts5(
+                CREATE VIRTUAL TABLE fts_{self.table_name} USING fts5(
                     keywords,
-                    content='{Config.KEYWORD_INDEX}',
+                    content='{self.table_name}',
                     content_rowid='rowid',
                     tokenize='porter'
                 )
             """)
             
             cur.execute(f"""
-                CREATE TRIGGER {Config.KEYWORD_INDEX}_ai AFTER INSERT ON {Config.KEYWORD_INDEX}
+                CREATE TRIGGER {self.table_name}_ai AFTER INSERT ON {self.table_name}
                 BEGIN
-                    INSERT INTO fts_{Config.KEYWORD_INDEX}(rowid, keywords)
+                    INSERT INTO fts_{self.table_name}(rowid, keywords)
                     VALUES (new.rowid, new.keywords);
                 END;
             """)
@@ -54,7 +56,7 @@ class KeywordDatabase:
                 keywords = self._extract_keywords(chunk["text"])
                 try:
                     cur.execute(f"""
-                        INSERT INTO {Config.KEYWORD_INDEX}
+                        INSERT INTO {self.table_name}
                         (id, text, pdf_name, page, keywords)
                         VALUES (?, ?, ?, ?, ?)
                     """, (
@@ -74,10 +76,10 @@ class KeywordDatabase:
             try:
                 cur.execute(f"""
                     SELECT k.id, k.text, k.pdf_name, k.page
-                    FROM {Config.KEYWORD_INDEX} k
+                    FROM {self.table_name} k
                     WHERE k.rowid IN (
-                        SELECT rowid FROM fts_{Config.KEYWORD_INDEX}
-                        WHERE fts_{Config.KEYWORD_INDEX} MATCH ?
+                        SELECT rowid FROM fts_{self.table_name}
+                        WHERE fts_{self.table_name} MATCH ?
                     )
                     LIMIT ?
                 """, (query, limit))
