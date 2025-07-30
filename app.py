@@ -85,7 +85,6 @@ def render_search_interface(vector_store):
             with st.expander(f"**{i}. {pdf_name} - Page {page_num}** (Score: {res.get('score', 0):.4f})"):
                 st.markdown(payload.get('text', 'No text available.'))
                 
-                # Using st.download_button as a more reliable alternative
                 pdf_path = Config.PDF_DIRECTORY / pdf_name
                 if pdf_path.exists():
                     with open(pdf_path, "rb") as f:
@@ -93,7 +92,8 @@ def render_search_interface(vector_store):
                             label="Download Source PDF",
                             data=f.read(),
                             file_name=pdf_name,
-                            mime="application/pdf"
+                            mime="application/pdf",
+                            key=f"search_download_{i}" # Unique key for search results
                         )
 
 def render_chatbot_interface(chatbot):
@@ -113,6 +113,13 @@ def render_chatbot_interface(chatbot):
         with st.chat_message("user"):
             st.write(prompt)
 
+        # Save the conversation to history after the first user message
+        if len(st.session_state.messages) == 2: # Assistant intro + first user message
+            chat_title = prompt[:30] + "..." if len(prompt) > 30 else prompt
+            st.session_state.history.append({"title": chat_title, "messages": st.session_state.messages.copy()})
+            st.session_state.current_chat_index = len(st.session_state.history) - 1
+
+
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
                 response, sources = chatbot.generate_response(prompt)
@@ -120,14 +127,13 @@ def render_chatbot_interface(chatbot):
 
                 if sources:
                     st.subheader("Sources:")
-                    for source in sources:
+                    for i, source in enumerate(sources): # Use enumerate for a unique index
                         pdf_name = source.get('pdf_name', 'N/A')
                         page_num = source.get('page', 0)
                         with st.container(border=True):
                             st.markdown(f"**PDF:** {pdf_name} - **Page:** {page_num}")
                             st.markdown(f"> {source.get('text', '')[:150]}...")
                             
-                            # Using st.download_button as a more reliable alternative
                             pdf_path = Config.PDF_DIRECTORY / pdf_name
                             if pdf_path.exists():
                                 with open(pdf_path, "rb") as f:
@@ -136,15 +142,26 @@ def render_chatbot_interface(chatbot):
                                         data=f.read(),
                                         file_name=pdf_name,
                                         mime="application/pdf",
-                                        key=f"download_{pdf_name}_{page_num}"
+                                        # Add the unique index 'i' to the key
+                                        key=f"download_{pdf_name}_{page_num}_{i}"
                                     )
         
         st.session_state.messages.append({"role": "assistant", "content": response})
+        # Update the history with the latest messages
+        if st.session_state.current_chat_index is not None:
+            st.session_state.history[st.session_state.current_chat_index]["messages"] = st.session_state.messages.copy()
+
 
 def main():
     """Main function to run the Streamlit app."""
     st.set_page_config(page_title="Document Search & Chat", layout="wide")
     st.title("📄 Document Intelligence Engine")
+
+    # Initialize session state for chat history
+    if "history" not in st.session_state:
+        st.session_state.history = []
+    if "current_chat_index" not in st.session_state:
+        st.session_state.current_chat_index = None
     
     # --- Sidebar for Document Management ---
     with st.sidebar:
@@ -157,34 +174,28 @@ def main():
         )
         if uploaded_files:
             for uploaded_file in uploaded_files:
-                # Save the uploaded file to the data directory
                 with open(Config.PDF_DIRECTORY / uploaded_file.name, "wb") as f:
                     f.write(uploaded_file.getbuffer())
             st.success(f"Successfully uploaded {len(uploaded_files)} file(s)!")
             st.info("Click the 'Process All Documents' button to add them to the index.")
-            # Rerun to update the file list below
             st.rerun()
 
         if st.button("Process All Documents"):
             sync_and_process_pdfs()
 
         st.divider()
-        st.header("Existing Documents")
+        st.header("Chat History")
+
+        if st.button("New Chat"):
+            st.session_state.messages = [{"role": "assistant", "content": "How can I help you with your documents?"}]
+            st.session_state.current_chat_index = None
+            st.rerun()
         
-        pdf_files = sorted(list(Config.PDF_DIRECTORY.glob("*.pdf")))
-        if not pdf_files:
-            st.write("No documents found.")
-        else:
-            for pdf_file in pdf_files:
-                # Using st.download_button for a more reliable experience
-                with open(pdf_file, "rb") as f:
-                    st.download_button(
-                        label=pdf_file.name,
-                        data=f.read(),
-                        file_name=pdf_file.name,
-                        mime="application/pdf",
-                        key=f"view_{pdf_file.name}"
-                    )
+        for i, chat in enumerate(st.session_state.history):
+            if st.button(chat["title"], key=f"chat_{i}"):
+                st.session_state.messages = chat["messages"]
+                st.session_state.current_chat_index = i
+                st.rerun()
 
 
     # --- Main Interface ---

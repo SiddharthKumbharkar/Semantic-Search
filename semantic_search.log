@@ -195653,3 +195653,82 @@ sqlite3.ProgrammingError: SQLite objects created in a thread can only be used in
 2025-07-30 16:17:11,040 - INFO - Initializing Chatbot...
 2025-07-30 16:17:11,104 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/show "HTTP/1.1 200 OK"
 2025-07-30 16:17:11,105 - INFO - Successfully connected to Ollama model: llama3.2:latest
+2025-07-30 17:40:13,937 - INFO - Initializing VectorStore...
+2025-07-30 17:40:13,983 - INFO - Recreating keyword database schema for table: keyword_index
+2025-07-30 17:40:13,986 - INFO - Initializing embedding model...
+2025-07-30 17:40:13,987 - INFO - Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+2025-07-30 17:40:18,044 - INFO - Loading embedding cache...
+2025-07-30 17:40:18,245 - INFO - Initializing Chatbot...
+2025-07-30 17:40:18,307 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/show "HTTP/1.1 200 OK"
+2025-07-30 17:40:18,308 - INFO - Successfully connected to Ollama model: llama3.2:latest
+2025-07-30 17:40:29,071 - INFO - Retrieving context for query: 'what is numpy?'
+2025-07-30 17:40:29,152 - INFO - Generating response from LLM...
+2025-07-30 17:40:33,950 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-07-30 17:40:33,973 - ERROR - Application error: There are multiple elements with the same `key='download_data1.pdf_21'`. To fix this, please make sure that the `key` argument is unique for each element you create.
+Traceback (most recent call last):
+  File "/Users/siddharthkumbharkar/Documents/Code/hybrid search/Semantic-Search/app.py", line 201, in main
+    render_chatbot_interface(chatbot)
+  File "/Users/siddharthkumbharkar/Documents/Code/hybrid search/Semantic-Search/app.py", line 134, in render_chatbot_interface
+    st.download_button(
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/streamlit/runtime/metrics_util.py", line 443, in wrapped_func
+    result = non_optional_func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/streamlit/elements/widgets/button.py", line 528, in download_button
+    return self._download_button(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/streamlit/elements/widgets/button.py", line 817, in _download_button
+    element_id = compute_and_register_element_id(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/streamlit/elements/lib/utils.py", line 254, in compute_and_register_element_id
+    _register_element_id(ctx, element_type, element_id)
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/streamlit/elements/lib/utils.py", line 143, in _register_element_id
+    raise StreamlitDuplicateElementKey(user_key)
+streamlit.errors.StreamlitDuplicateElementKey: There are multiple elements with the same `key='download_data1.pdf_21'`. To fix this, please make sure that the `key` argument is unique for each element you create.
+2025-07-30 17:41:07,180 - INFO - Retrieving context for query: 'what is numpy'
+2025-07-30 17:41:07,193 - INFO - Generating response from LLM...
+2025-07-30 17:41:09,853 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-07-30 17:41:09,871 - ERROR - Application error: There are multiple elements with the same `key='download_data1.pdf_21'`. To fix this, please make sure that the `key` argument is unique for each element you create.
+Traceback (most recent call last):
+  File "/Users/siddharthkumbharkar/Documents/Code/hybrid search/Semantic-Search/app.py", line 201, in main
+    render_chatbot_interface(chatbot)
+  File "/Users/siddharthkumbharkar/Documents/Code/hybrid search/Semantic-Search/app.py", line 134, in render_chatbot_interface
+    st.download_button(
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/streamlit/runtime/metrics_util.py", line 443, in wrapped_func
+    result = non_optional_func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/streamlit/elements/widgets/button.py", line 528, in download_button
+    return self._download_button(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/streamlit/elements/widgets/button.py", line 817, in _download_button
+    element_id = compute_and_register_element_id(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/streamlit/elements/lib/utils.py", line 254, in compute_and_register_element_id
+    _register_element_id(ctx, element_type, element_id)
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/streamlit/elements/lib/utils.py", line 143, in _register_element_id
+    raise StreamlitDuplicateElementKey(user_key)
+streamlit.errors.StreamlitDuplicateElementKey: There are multiple elements with the same `key='download_data1.pdf_21'`. To fix this, please make sure that the `key` argument is unique for each element you create.
+2025-07-30 17:42:34,806 - INFO - Initializing VectorStore...
+2025-07-30 17:42:34,843 - INFO - Recreating keyword database schema for table: keyword_index
+2025-07-30 17:42:34,847 - INFO - Initializing embedding model...
+2025-07-30 17:42:34,847 - INFO - Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+2025-07-30 17:42:38,265 - INFO - Loading embedding cache...
+2025-07-30 17:42:38,461 - INFO - Initializing Chatbot...
+2025-07-30 17:42:38,526 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/show "HTTP/1.1 200 OK"
+2025-07-30 17:42:38,527 - INFO - Successfully connected to Ollama model: llama3.2:latest
+2025-07-30 17:42:48,923 - INFO - Retrieving context for query: 'what is numpy'
+2025-07-30 17:42:48,941 - INFO - Generating response from LLM...
+2025-07-30 17:42:50,361 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-07-30 17:44:59,896 - INFO - Initializing VectorStore...
+2025-07-30 17:44:59,943 - INFO - Recreating keyword database schema for table: keyword_index
+2025-07-30 17:44:59,945 - INFO - Initializing embedding model...
+2025-07-30 17:44:59,945 - INFO - Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+2025-07-30 17:45:03,666 - INFO - Loading embedding cache...
+2025-07-30 17:45:03,867 - INFO - Initializing Chatbot...
+2025-07-30 17:45:03,931 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/show "HTTP/1.1 200 OK"
+2025-07-30 17:45:03,932 - INFO - Successfully connected to Ollama model: llama3.2:latest
+2025-07-30 17:45:27,225 - INFO - Retrieving context for query: 'what is numpy?'
+2025-07-30 17:45:27,241 - INFO - Generating response from LLM...
+2025-07-30 17:45:29,845 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-07-30 17:46:38,994 - INFO - Retrieving context for query: 'what is numpy?'
+2025-07-30 17:46:39,013 - INFO - Generating response from LLM...
+2025-07-30 17:46:40,349 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
