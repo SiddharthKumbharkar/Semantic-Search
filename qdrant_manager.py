@@ -13,6 +13,7 @@ class QdrantManager:
             force_disable_check_same_thread=True
         )
         self._ensure_collection(Config.EMBEDDING_DIM)
+        self._model = None  # Cache the embedding model
 
     def _ensure_collection(self, vector_size: int):
         """Create or validate collection exists."""
@@ -23,6 +24,13 @@ class QdrantManager:
                 collection_name=Config.QDRANT_COLLECTION,
                 vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE)
             )
+
+    def _get_embedding_model(self):
+        """Get or create the embedding model (cached)"""
+        if self._model is None:
+            from sentence_transformers import SentenceTransformer
+            self._model = SentenceTransformer(Config.EMBEDDING_MODEL)
+        return self._model
 
     def upsert_vectors(self, chunks: list, embeddings: list):
         """Store vectors in Qdrant."""
@@ -54,6 +62,39 @@ class QdrantManager:
             limit=limit,
             with_payload=True
         )
+
+    def search(self, query: str, limit: int = 10):
+        """Perform optimized semantic search using query text."""
+        try:
+            # Use cached model
+            model = self._get_embedding_model()
+            
+            # Encode the query
+            query_embedding = model.encode(query).tolist()
+            
+            # Perform vector search with optimized parameters
+            results = self.client.search(
+                collection_name=Config.QDRANT_COLLECTION,
+                query_vector=query_embedding,
+                limit=limit,
+                with_payload=True,
+                score_threshold=0.3  # Add score threshold for better quality
+            )
+            
+            # Convert to expected format
+            formatted_results = []
+            for result in results:
+                formatted_results.append({
+                    'id': result.id,
+                    'payload': result.payload,
+                    'score': result.score
+                })
+            
+            return formatted_results
+            
+        except Exception as e:
+            logger.error(f"Search error: {e}")
+            return []
 
     def hybrid_search(self, query_embedding: list, keywords: list, keyword_db):
         """Combine vector and keyword search results."""

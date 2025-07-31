@@ -113,22 +113,121 @@ class VectorStore:
         except Exception as e:
             logger.error(f"Failed to save embedding {chunk_id}: {str(e)}")
 
-    def hybrid_search(self, query: str) -> list:
-        """Perform hybrid search"""
-        if not query or not query.strip():
+    def hybrid_search(self, query: str, accessible_docs: list = None) -> list:
+        """Perform optimized hybrid search combining semantic and keyword search"""
+        try:
+            # Optimize: Use smaller limits for faster response
+            semantic_limit = 10  # Reduced from 20
+            keyword_limit = 5    # Reduced from 20
+            
+            # Get semantic search results first (usually more relevant)
+            semantic_results = self.qdrant.search(query, limit=semantic_limit)
+            
+            # Only do keyword search if semantic results are insufficient
+            if len(semantic_results) < 5:
+                keywords = self._extract_keywords_from_query(query)
+                keyword_results = self.keyword_db.search(keywords, limit=keyword_limit)
+                
+                # Combine results with semantic results having higher priority
+                combined_results = self._combine_results(semantic_results, keyword_results)
+            else:
+                combined_results = semantic_results
+            
+            # Filter by accessible documents if specified
+            if accessible_docs is not None:
+                combined_results = self._filter_by_accessible_docs(combined_results, accessible_docs)
+            
+            # Return top results (reduced from 10 to 8 for faster response)
+            return combined_results[:8]
+            
+        except Exception as e:
+            logger.error(f"Hybrid search failed: {str(e)}")
             return []
 
+    def _extract_keywords_from_query(self, query: str) -> list:
+        """Extract important keywords from the query for keyword search"""
         try:
-            query_embed = self.model.encode(query)
-            keywords = self.keyword_db._extract_keywords(query).split()
-            return self.qdrant.hybrid_search(
-                query_embed, 
-                keywords, 
-                self.keyword_db
-            )
+            import nltk
+            from nltk.tokenize import word_tokenize
+            from collections import Counter
+            
+            # Download required NLTK data
+            nltk.download('punkt', quiet=True)
+            
+            # Tokenize and filter words
+            words = word_tokenize(query.lower())
+            # Keep only alphanumeric words with length > 2
+            keywords = [word for word in words if word.isalnum() and len(word) > 2]
+            
+            # Get the most common keywords (reduced from 5 to 3 for speed)
+            keyword_counts = Counter(keywords)
+            top_keywords = [word for word, count in keyword_counts.most_common(3)]
+            
+            return top_keywords
+            
         except Exception as e:
-            logger.error(f"Search failed: {str(e)}")
-            return []
+            logger.error(f"Error extracting keywords: {e}")
+            # Fallback: return the query words as keywords
+            return query.lower().split()
+
+    def _filter_by_accessible_docs(self, results: list, accessible_docs: list) -> list:
+        """Filter results to only include accessible documents"""
+        if not accessible_docs:
+            return results
+        
+        filtered_results = []
+        for result in results:
+            # Extract document name from result
+            doc_name = None
+            if 'payload' in result and 'pdf_name' in result['payload']:
+                doc_name = result['payload']['pdf_name']
+            elif 'metadata' in result and 'source' in result['metadata']:
+                doc_name = result['metadata']['source']
+            
+            if doc_name and doc_name in accessible_docs:
+                filtered_results.append(result)
+        
+        return filtered_results
+
+    def _combine_results(self, semantic_results: list, keyword_results: list) -> list:
+        """Combine and rank semantic and keyword search results"""
+        try:
+            # Create a combined results list
+            combined = []
+            
+            # Add semantic results with higher weight
+            for result in semantic_results:
+                if isinstance(result, dict):
+                    result['score'] = result.get('score', 0.8)  # Default high score for semantic
+                    combined.append(result)
+            
+            # Add keyword results with lower weight
+            for result in keyword_results:
+                if isinstance(result, dict):
+                    result['score'] = result.get('score', 0.6)  # Default lower score for keyword
+                    combined.append(result)
+            
+            # Remove duplicates based on content
+            seen = set()
+            unique_results = []
+            for result in combined:
+                # Create a unique key based on content
+                content = result.get('text', '') or result.get('payload', {}).get('text', '')
+                key = hash(content)
+                
+                if key not in seen:
+                    seen.add(key)
+                    unique_results.append(result)
+            
+            # Sort by score (highest first)
+            unique_results.sort(key=lambda x: x.get('score', 0), reverse=True)
+            
+            return unique_results
+            
+        except Exception as e:
+            logger.error(f"Error combining results: {str(e)}")
+            # Return semantic results as fallback
+            return semantic_results if semantic_results else keyword_results
             
     def get_context_for_rag(self, query: str) -> list[dict]:
         """Retrieve relevant document chunks for RAG context."""

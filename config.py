@@ -27,13 +27,14 @@ class Config:
     MIN_SENTENCE_LENGTH = 5
     SENTENCES_PER_CHUNK = 5
     
-    # --- Search Settings ---
-    SIMILARITY_TOP_K = 10
-    HYBRID_SEARCH_RATIO = 0.5
+    # --- Search Settings (Optimized for speed) ---
+    SIMILARITY_TOP_K = 8  # Reduced from 10 for faster response
+    HYBRID_SEARCH_RATIO = 0.7  # Increased semantic search ratio
 
     # --- Chatbot (RAG) Settings ---
-    OLLAMA_MODEL = "llama3.2:latest"
-    CONTEXT_CHUNKS_FOR_RAG = 5
+    # Try common models in order of preference
+    OLLAMA_MODEL = "llama2:latest"  # Changed from llama3.2:latest to llama2:latest
+    CONTEXT_CHUNKS_FOR_RAG = 3  # Reduced from 5 for faster processing
     RAG_PROMPT_TEMPLATE = """
     **Task:** You are an intelligent assistant. Use the following context from the user's documents to answer their question.
 

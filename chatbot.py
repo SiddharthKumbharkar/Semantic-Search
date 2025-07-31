@@ -17,10 +17,11 @@ class Chatbot:
             ollama.show(self.model_name)
             logger.info(f"Successfully connected to Ollama model: {self.model_name}")
         except Exception as e:
-            logger.error(f"Ollama model '{self.model_name}' not found. Please run 'ollama pull {self.model_name}'")
-            raise RuntimeError(f"Ollama model '{self.model_name}' not found.") from e
+            logger.warning(f"Ollama model '{self.model_name}' not found. Using fallback mode.")
+            logger.warning(f"Please run 'ollama pull {self.model_name}' to enable full functionality.")
+            # Don't raise error, just log warning
 
-    def generate_response(self, query: str):
+    def generate_response(self, query: str, accessible_docs: list = None):
         """Generate a response using the RAG pipeline."""
         if not query:
             return "Please ask a question.", []
@@ -32,15 +33,21 @@ class Chatbot:
         if not retrieved_chunks:
             return "I could not find any relevant information in your documents to answer this question.", []
 
-        # 2. Format the context
+        # 2. Filter chunks by accessible documents if specified
+        if accessible_docs is not None:
+            retrieved_chunks = self._filter_chunks_by_access(retrieved_chunks, accessible_docs)
+            if not retrieved_chunks:
+                return "I could not find any relevant information in your accessible documents to answer this question.", []
+
+        # 3. Format the context
         context_str = "\n\n---\n\n".join([chunk['text'] for chunk in retrieved_chunks])
         
-        # 3. Create the prompt
+        # 4. Create the prompt
         prompt = self.prompt_template.format(context=context_str, question=query)
         
         logger.info("Generating response from LLM...")
         try:
-            # 4. Generate response from Ollama
+            # 5. Generate response from Ollama
             response = ollama.generate(
                 model=self.model_name,
                 prompt=prompt
@@ -54,5 +61,36 @@ class Chatbot:
 
         except Exception as e:
             logger.error(f"Error generating response from Ollama: {e}")
-            return f"An error occurred while communicating with the language model: {e}", []
+            # Fallback: return a simple response based on the context
+            return self._generate_fallback_response(query, context_str), retrieved_chunks
+
+    def _generate_fallback_response(self, query: str, context: str) -> str:
+        """Generate a simple fallback response when Ollama is not available."""
+        # Create a more professional and concise fallback response
+        context_summary = context[:800] + "..." if len(context) > 800 else context
+        
+        return f"""Based on the available documents, here's what I found regarding your question: "{query}"
+
+{context_summary}
+
+This information is extracted directly from your documents. For more detailed AI-powered responses, please ensure Ollama is properly configured."""
+
+    def _filter_chunks_by_access(self, chunks: list, accessible_docs: list) -> list:
+        """Filter chunks to only include those from accessible documents"""
+        if not accessible_docs:
+            return chunks
+        
+        filtered_chunks = []
+        for chunk in chunks:
+            # Extract document name from chunk
+            doc_name = None
+            if 'metadata' in chunk and 'source' in chunk['metadata']:
+                doc_name = chunk['metadata']['source']
+            elif 'pdf_name' in chunk:
+                doc_name = chunk['pdf_name']
+            
+            if doc_name and doc_name in accessible_docs:
+                filtered_chunks.append(chunk)
+        
+        return filtered_chunks
 
